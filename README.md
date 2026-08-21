@@ -1,5 +1,5 @@
 # Pie.ai 🥧
-Pre-Inference Engine (PIE) for Autonomous AI Agents & Local LLMs
+Pre-Inference Eval (PIE) for Autonomous AI Agents & Local LLMs
 
 pie.ai is a lightweight, local-first proxy and regression testing framework that sits between your application code and your LLM provider. It intercepts payloads pre-inference to enforce security boundaries, block prompt injections, validate tool and Model Context Protocol (MCP) schemas, and stop runaway agentic token loops before they waste compute or rack up API fees.
 
@@ -15,12 +15,14 @@ pie.ai is a lightweight, local-first proxy and regression testing framework that
 🔄 Local Provider Passthrough: Seamlessly forwards valid, sanitized requests to local backends like Ollama (or OpenAI-compatible APIs).
 
 ## Project Structure
-Plaintext
+
+```Plaintext
 pie.ai/
 ├── proxy.py          # FastAPI pre-inference proxy core
 ├── test_pie_ai.py    # Pytest regression suite
 ├── pyproject.toml    # Project dependencies and configuration
 └── README.md
+```
 
 ## Getting Started
 ### Prerequisites
@@ -44,8 +46,6 @@ Ensure your local model is pulled (e.g., Llama 3.2):
 
 ```Bash
 ollama pull llama3.2
-```
-```Bash
 uv run proxy.py
 ```
 The proxy will spin up on [http://127.0.0.1:8080](http://127.0.0.1:8080).
