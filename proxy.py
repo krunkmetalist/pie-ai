@@ -2,37 +2,43 @@ import os
 import httpx
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 app = FastAPI(title="pie.ai pre-inference engine", version="0.1.0")
 
-# Configuration for upstream provider (OpenAI, Ollama, etc.)
-UPSTREAM_BASE_URL = os.getenv("UPSTREAM_BASE_URL", "https://api.openai.com/v1")
-
-class ChatCompletionRequest(BaseModel):
-    model: str
-    messages: list[dict]
-    temperature: float | None = 0.7
-    max_tokens: int | None = None
+# Point upstream to local Ollama OpenAI-compatible endpoint
+UPSTREAM_BASE_URL = os.getenv("UPSTREAM_BASE_URL", "http://localhost:11434/v1")
 
 def run_pre_inference_checks(payload: dict) -> tuple[bool, str]:
-    """
-    Core pie.ai evaluation logic running pre-inference.
-    Inspects messages for context bloat, prompt injection, or loop patterns.
-    """
     messages = payload.get("messages", [])
+    tools = payload.get("tools", [])
     
     total_chars = sum(len(m.get("content", "")) for m in messages if isinstance(m.get("content"), str))
     
-    # Check 1: Context Bloat / Runaway Loop Guard (e.g., arbitrarily blocking payloads > 50,000 chars for MVP)
+    # Check 1: Context Bloat / Runaway Loop Guard
     if total_chars > 50000:
         return False, f"Blocked by pie.ai: Context window too large ({total_chars} chars). Potential runaway loop detected."
     
-    # Check 2: Simple Prompt Injection / Safety Signature Check
+    # Check 2: Prompt Injection Guard
     for msg in messages:
         content = msg.get("content", "")
         if isinstance(content, str) and "ignore previous instructions" in content.lower():
             return False, "Blocked by pie.ai: Potential prompt injection signature identified."
+
+    # Check 3: MCP / Tool-Call Schema & Safety Guard
+    for tool in tools:
+        func = tool.get("function", {})
+        func_name = func.get("name", "unknown")
+        
+        # Example guard: Block dangerous or forbidden tool namespaces pre-inference
+        forbidden_tools = ["execute_shell", "drop_database", "rm_rf"]
+        if func_name in forbidden_tools:
+            return False, f"Blocked by pie.ai: Tool '{func_name}' violates security policy (forbidden execution namespace)."
+
+        # Check parameter schemas for structural soundness
+        parameters = func.get("parameters", {})
+        if parameters and not isinstance(parameters, dict):
+            return False, f"Blocked by pie.ai: Tool '{func_name}' has malformed parameter schema."
 
     return True, "Passed"
 
@@ -47,7 +53,6 @@ async def proxy_chat_completions(request: Request):
     is_safe, reason = run_pre_inference_checks(body)
     
     if not is_safe:
-        # Fail fast: Save money, skip upstream API call entirely
         return JSONResponse(
             status_code=422,
             content={
@@ -59,17 +64,17 @@ async def proxy_chat_completions(request: Request):
             }
         )
 
-    # 2. If passed, forward request cleanly to upstream LLM provider
+    # 2. Forward clean request upstream to local Ollama
     headers = dict(request.headers)
-    headers.pop("host", None) # Clean up host header for proxy forwarding
+    headers.pop("host", None)
+    headers.pop("content-length", None)
     
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=60.0) as client:
         try:
             upstream_response = await client.post(
                 f"{UPSTREAM_BASE_URL}/chat/completions",
                 json=body,
-                headers=headers,
-                timeout=30.0
+                headers=headers
             )
             return JSONResponse(
                 status_code=upstream_response.status_code,
