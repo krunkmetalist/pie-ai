@@ -19,7 +19,7 @@ pie.ai is a lightweight, local-first proxy and regression testing framework that
 ```Plaintext
 pie.ai/
 ├── proxy.py          # FastAPI pre-inference proxy core
-├── test_pie_ai.py    # Pytest regression suite
+├── tests/test_pie_ai.py # Pytest regression suite
 ├── pyproject.toml    # Project dependencies and configuration
 └── README.md
 ```
@@ -76,7 +76,7 @@ Result: Blocked instantly at the pre-inference gate with a 422 error code.
 With the proxy running in the background, execute the automated test assertions:
 
 ```Bash
-uv run pytest test_pie_ai.py -v
+uv run pytest tests/test_pie_ai.py -v
 ```
 ### Roadmap
 [ ] Semantic intent drift classification via lightweight local embedding checks.
@@ -85,5 +85,23 @@ uv run pytest test_pie_ai.py -v
 
 [ ] Native integration for LangChain and LlamaIndex agent runtimes.
 
-License
-Distributed under the MIT License. See LICENSE for more information.
+## Author
+
+**Nate** - [nate@adeptusaudio.com](mailto:nate@adeptusaudio.com)
+
+## License (Dual-License)
+
+This project is dual-licensed to accommodate both open-source and commercial use cases.
+
+### Open-Source / Non-Commercial Use
+`pie.ai` is released under the **GNU Affero General Public License v3.0 (AGPLv3)**. 
+Anyone can freely use, modify, and distribute this software under the conditions of the AGPLv3. 
+
+**⚠️ Note for corporate users:** If you modify or use this software to provide a service over a network (e.g., as part of a SaaS product, internal cloud tool, or commercial application), the AGPLv3 requires you to make the entire source code of your application publicly available under the same license.
+
+### Commercial Use
+If you want to use `pie.ai` in a commercial, proprietary, or closed-source environment without the copyleft restrictions of the AGPLv3 (e.g., you want to keep your product's source code private), you must purchase a **Commercial License**.
+
+Please contact [nate@adeptusaudio.com](mailto:nate@adeptusaudio.com) to discuss commercial licensing options.
+
+See the [LICENSE](LICENSE) file for the full open-source licensing terms.
